@@ -19,17 +19,33 @@ const kindOptions: Array<SelectableValue<string>> = [
   { value: 'StressChaos', label: 'Stress Chaos' },
 ];
 
-export class QueryEditor extends PureComponent<Props> {
+interface State {
+  namespaces: Array<SelectableValue<string>>;
+}
+
+export class QueryEditor extends PureComponent<Props, State> {
   query: ChaosEventsQuery;
+  dataSource: DataSource;
 
   constructor(props: Props) {
     super(props);
 
     this.query = defaults(this.props.query, defaultQuery);
+    this.dataSource = this.props.datasource;
+
+    this.state = {
+      namespaces: [],
+    };
   }
 
-  onNamespaceChange = (event: ChangeEvent<HTMLInputElement>) => {
-    this.query.namespace = event.target.value;
+  componentDidMount() {
+    this.dataSource.queryNamespaces().then((results: any) => {
+      this.setState({ namespaces: results.data.map((ns: string) => ({ label: ns, value: ns })) });
+    });
+  }
+
+  onNamespaceChange = (item: SelectableValue<string>) => {
+    this.query.namespace = item.value;
   };
 
   onKindChange = (item: SelectableValue<string>) => {
@@ -47,22 +63,25 @@ export class QueryEditor extends PureComponent<Props> {
   };
 
   render() {
-    const { namespace, experiment } = this.query;
+    const { namespaces } = this.state;
+    const { experiment } = this.query;
     const selectedKind = kindOptions.find(o => o.value === this.query.kind);
+    const selectedNamespace = namespaces.find(o => o.value === this.query.namespace);
 
     return (
       <div>
         <div className="gf-form-inline">
           <div className="gf-form">
-            <InlineFormLabel width={12} tooltip="Namespace of Chaos Experiments">
-              Experiment Namespace
+            <InlineFormLabel width={10} tooltip={'Namespace of the Chaos Experiment'}>
+              Namespace
             </InlineFormLabel>
-            <Input
-              type="text"
-              className="gf-form-input"
-              value={namespace}
+            <Select
+              width={10}
+              value={selectedNamespace}
               onChange={this.onNamespaceChange}
               onBlur={this.onRunQuery}
+              options={namespaces}
+              isSearchable={false}
             />
           </div>
 
